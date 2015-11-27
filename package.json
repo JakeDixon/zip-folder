@@ -13,7 +13,7 @@
   "activationCommands": {
     "atom-workspace": "zip-folder:run"
   },
-  "repository": "https://github.com/atom/zip-folder",
+  "repository": "https://github.com/JakeDixon/zip-folder",
   "license": "MIT",
   "engines": {
     "atom": ">=1.0.0 <2.0.0"
