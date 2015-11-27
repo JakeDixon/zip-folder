@@ -1,3 +1,3 @@
-## 1.0.0 - First Release
-* Every feature added
-* Every bug fixed
+## 2.1.1 - Second Release
+* Fixed zip issue
+* Added done notification
