@@ -1,14 +1,14 @@
 {
   "name": "zip-folder",
   "main": "./lib/zip-folder",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Quickly zip files and folders from within Atom",
   "keywords": [
-      "zip",
-      "folder",
-      "zip folder",
-      "archive folder",
-      "archive"
+    "zip",
+    "folder",
+    "zip folder",
+    "archive folder",
+    "archive"
   ],
   "activationCommands": {
     "atom-workspace": "zip-folder:run"
@@ -19,7 +19,7 @@
     "atom": ">=1.0.0 <2.0.0"
   },
   "dependencies": {
-      "jszip": "2.5.0",
-      "fs-plus": "2.x"
+    "jszip": "2.5.0",
+    "fs-plus": "2.x"
   }
 }
