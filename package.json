@@ -1,7 +1,7 @@
 {
   "name": "zip-folder",
   "main": "./lib/zip-folder",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Quickly zip files and folders from within Atom",
   "keywords": [
     "zip",
