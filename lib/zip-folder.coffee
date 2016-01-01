@@ -26,50 +26,94 @@ module.exports = ZipFolder =
     zipFolderViewState: @zipFolderView.serialize()
 
   run: ->
+    # require libraries that we rely on
     fs = require('fs-plus')
     JSZip = require("jszip")
     path = require('path')
 
+    # set up a new zip class
     zip = new JSZip()
+    # get the project paths from atom
     basePaths = atom.project.getPaths()
 
+    # this gets the list tree element of the interface
     listTree = document.querySelector('.tree-view')
 
+    # get all the selected items in the list tree
     selected = listTree.querySelectorAll('.selected > .header > span, .selected > span')
 
+    # if we are handling more then one item then the zip name will be the projects main folder name
+    # else the folder/file name is the selected items name
     if selected.length > 1
+        # get an array of folders
         pieces = basePaths[0].split(path.sep)
-        name = pieces[pieces.length - 1]
+        # get the name of the selected item replacing . with -
+        name = pieces[pieces.length - 1].replace(".", "-")
+        # set the save path
         savePath = basePaths[0] + path.sep + name + ".zip"
+        # set the selectedBasePath to empty
+        selectedBasePath = ""
     else
+        # get an array of folders
         pieces = selected[0].dataset.path.split(path.sep)
-        name = pieces[pieces.length - 1]
-        savePath = selected[0].dataset.path + path.sep + name + ".zip"
+        # get the name of the selected item replacing . with -
+        name = pieces[pieces.length - 1].replace(".", "-")
+        # remove the selected item from the save path
+        pieces.splice(pieces.length - 1, 1)
+        # build the target path
+        targetPath = pieces.join(path.sep)
+        # set the save path
+        savePath = targetPath + path.sep + name + ".zip"
+        # set the selectedBasePath to empty
+        selectedBasePath = ""
+        # if we are handling a directory set the selectedBasePath to that
+        if fs.isDirectorySync selected[0].dataset.path
+            selectedBasePath = selected[0].dataset.path
 
 
+    # if the zip folder exists then truncate it
+    # this prevents us just adding to the zip folder
     if fs.existsSync(savePath)
         fs.truncateSync(savePath, 0)
 
+    # cycle through the selected list tree items
     d = 0
     while d < selected.length
-        output = d + 1
+        # get the path of the current item we are processing
         path = selected[d].dataset.path
+        # setup a blank relative path to the file
         relPath = ""
+        # setup an empty array of files
         files = [];
 
+        # if the selected item is a directory then
+        # get an array of the items inside it and
+        # add that array directly to the files array
         if fs.isDirectorySync(path)
             files = fs.listTreeSync(path)
         else
             files = [path]
 
+        # cycle through the files found
         fileCount = 0
         while fileCount < files.length
+            # get the absolute path of the current file
             absPath = files[fileCount]
-            basePathsChecked = 0
-            while basePathsChecked < basePaths.length
-                relPath = absPath.replace(basePaths[basePathsChecked], "", 'i')
-                basePathsChecked++
 
+            # if the selectedBasePath is set remove it from the absolute path
+            # to create the relative paths from there instead of root
+            # else remove the base paths from them
+            if selectedBasePath != ""
+                relPath = absPath.replace(selectedBasePath, "", 'i')
+            else
+                # cycle through the base paths removing them
+                # from the absolute paths to create the relative path
+                basePathsChecked = 0
+                while basePathsChecked < basePaths.length
+                    relPath = absPath.replace(basePaths[basePathsChecked], "", 'i')
+                    basePathsChecked++
+
+            # if the absolute path is not a directory we add the file to the zip archive
             if (!fs.isDirectorySync(absPath))
                 zip.file(relPath, fs.readFileSync(absPath))
 
@@ -78,8 +122,15 @@ module.exports = ZipFolder =
 
         d++
 
+    # get the contents of the zip folder ready for writing
     content = zip.generate({type:"nodebuffer"})
 
-    fs.writeFile(savePath, content)
-
-    atom.notifications.addSuccess("Zip complete")
+    # write the contents to the zip file
+    fs.writeFile(savePath, content, (e) ->
+        if e != null
+            # let the user know there was an error saving the zip file
+            atom.notifications.addError(e.message)
+        else
+            # alert the user we are done
+            atom.notifications.addSuccess("Zip complete")
+    )
