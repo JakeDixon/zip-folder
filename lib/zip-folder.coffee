@@ -80,7 +80,7 @@ module.exports = ZipFolder =
     d = 0
     while d < selected.length
         # get the path of the current item we are processing
-        path = selected[d].dataset.path
+        selPath = selected[d].dataset.path
         # setup a blank relative path to the file
         relPath = ""
         # setup an empty array of files
@@ -89,10 +89,10 @@ module.exports = ZipFolder =
         # if the selected item is a directory then
         # get an array of the items inside it and
         # add that array directly to the files array
-        if fs.isDirectorySync(path)
-            files = fs.listTreeSync(path)
+        if fs.isDirectorySync(selPath)
+            files = fs.listTreeSync(selPath)
         else
-            files = [path]
+            files = [selPath]
 
         # cycle through the files found
         fileCount = 0
@@ -104,18 +104,24 @@ module.exports = ZipFolder =
             # to create the relative paths from there instead of root
             # else remove the base paths from them
             if selectedBasePath != ""
-                relPath = absPath.replace(selectedBasePath, "", 'i')
+                # remember to remove the trailing slash else paths end up absolute on extract
+                relPath = absPath.replace(selectedBasePath + path.sep, "", 'i')
+                console.log selectedBasePath + path.sep
             else
                 # cycle through the base paths removing them
                 # from the absolute paths to create the relative path
                 basePathsChecked = 0
                 while basePathsChecked < basePaths.length
-                    relPath = absPath.replace(basePaths[basePathsChecked], "", 'i')
+                    # remember to remove the trailing slash else paths end up absolute on extract
+                    relPath = absPath.replace(basePaths[basePathsChecked] + path.sep, "", 'i')
                     basePathsChecked++
+
+
+            console.log relPath
 
             # if the absolute path is not a directory we add the file to the zip archive
             if (!fs.isDirectorySync(absPath))
-                zip.file(relPath, fs.readFileSync(absPath))
+                zip.file(relPath, fs.readFileSync(absPath), {createFolders: true})
 
             fileCount++
 
@@ -123,7 +129,8 @@ module.exports = ZipFolder =
         d++
 
     # get the contents of the zip folder ready for writing
-    content = zip.generate({type:"nodebuffer"})
+    content = zip.generate({type:"nodebuffer", compression: "DEFLATE", compressionOptions: {level: 6}})
+
 
     # write the contents to the zip file
     fs.writeFile(savePath, content, (e) ->
