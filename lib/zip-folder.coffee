@@ -123,8 +123,10 @@ module.exports =
 
 
                 # if the absolute path is not a directory we add the file to the zip archive
-                if (!fs.isDirectorySync(absPath))
-                    zip.file(relPath, fs.readFileSync(absPath), {createFolders: true})
+                if (fs.isDirectorySync(absPath))
+                    zip.folder(relPath)
+                else
+                    zip.file(relPath, fs.readFileSync(absPath))
 
                 fileCount++
 
