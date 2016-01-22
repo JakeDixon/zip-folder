@@ -134,18 +134,28 @@ module.exports =
         # get the compression level from the config
         compressionLevel = atom.config.get 'zip-folder.compressionLevel'
 
+        # default to unix platform as it is the most common
+        platform = 'UNIX'
+
+        # check if we are on windows and if true, update the platform to DOS
+        if process.platform == 'win32'
+            platform = 'DOS'
+
+        # create the zipOptions
+        zipOptions = {
+            type:"nodebuffer",
+            platform: platform
+        }
+
         # check the level is a number and that it is between 1 and 9
         # else don't compress it at all
         if compressionLevel == parseInt(compressionLevel, 10) and compressionLevel > 0 and compressionLevel < 10
-            # get the contents of the zip folder ready with the selected compression
-            content = zip.generate({type:"nodebuffer", compression: "DEFLATE", compressionOptions: {level: compressionLevel}})
-        else
-            # get the contents of the zip folder with no compression
-            content = zip.generate({type:"nodebuffer"})
+            # set the options to compress the zip folder
+            zipOptions.compression = "DEFLATE"
+            zipOptions.compressionOptions = {level: compressionLevel}
 
-
-
-
+        # generate the zip folder with the options
+        content = zip.generate(zipOptions)
 
         # write the contents to the zip file
         fs.writeFile(savePath, content, (e) ->
