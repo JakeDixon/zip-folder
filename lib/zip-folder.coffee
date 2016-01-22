@@ -131,8 +131,6 @@ module.exports =
 
             d++
 
-        # get the compression level from the config
-        compressionLevel = atom.config.get 'zip-folder.compressionLevel'
 
         # default to unix platform as it is the most common
         platform = 'UNIX'
@@ -146,6 +144,9 @@ module.exports =
             type:"nodebuffer",
             platform: platform
         }
+
+        # get the compression level from the config
+        compressionLevel = atom.config.get 'zip-folder.compressionLevel'
 
         # check the level is a number and that it is between 1 and 9
         # else don't compress it at all
