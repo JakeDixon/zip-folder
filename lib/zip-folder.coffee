@@ -31,17 +31,21 @@ module.exports =
         serialize: ->
             zipFolderViewState: @zipFolderView.serialize()
 
-        crawlAndZip: (zip, selPath) ->
+        crawlAndZip: (zip, options) ->
+            path = require('path')
+            # get the project paths from atom
+            basePaths = atom.project.getPaths()
+
             # setup an empty array of files
             files = [];
 
             # if the selected item is a directory then
             # get an array of the items inside it and
             # add that array directly to the files array
-            if fs.isDirectorySync(selPath)
-                files = fs.listSync(selPath)
+            if fs.isDirectorySync(options.selPath)
+                files = fs.listSync(options.selPath)
             else
-                files = [selPath]
+                files = [options.selPath]
 
             # cycle through the files found
             fileCount = 0
@@ -52,9 +56,9 @@ module.exports =
                 # if the selectedBasePath is set remove it from the absolute path
                 # to create the relative paths from there instead of root
                 # else remove the base paths from them
-                if selectedBasePath != ""
+                if options.selectedBasePath != ""
                     # remember to remove the trailing slash else paths end up absolute on extract
-                    relPath = absPath.replace(selectedBasePath + path.sep, "", 'i')
+                    relPath = absPath.replace(options.selectedBasePath + path.sep, "", 'i')
                 else
                     # cycle through the base paths removing them
                     # from the absolute paths to create the relative path
@@ -67,7 +71,10 @@ module.exports =
 
                 # if the absolute path is a directory create a zip folderwe add the file to the zip archive
                 if (fs.isDirectorySync(absPath))
-                    zip.folder(relPath)
+                    newOptions = options
+                    newOptions.selPath = absPath
+                    @crawlAndZip(zip.folder(relPath), options)
+
                 else
                     zip.file(relPath, fs.readFileSync(absPath))
 
@@ -132,7 +139,12 @@ module.exports =
                 # setup a blank relative path to the file
                 relPath = ""
 
-                @crawlAndZip(zip, selPath)
+
+
+                @crawlAndZip(zip, {
+                    selPath: selPath,
+                    selectedBasePath: selectedBasePath
+                })
 
                 d++
 
