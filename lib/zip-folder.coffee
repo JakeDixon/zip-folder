@@ -3,16 +3,23 @@ ZipFolderView = require './zip-folder-view'
 
 module.exports =
     config:
-        compressionLevel:
-            type: 'integer'
-            default: 6
-            description: 'Valid values are 0 (off) - 9 (maximum compression), any other values will result in compression being disabled.'
+      compressionLevel:
+        title: 'Compression Level'
+        type: 'integer'
+        default: 6
+        description: 'Valid values are 0 (off) - 9 (maximum compression), any other values will result in compression being disabled.'
 
-      modalPanel: null
-      zipFolderView: null
-      subscriptions: null
+      singleFolderZipToRoot:
+        title: 'Zip Single Folder Contents To Archives Root'
+        type: 'boolean'
+        default: true
+        description: 'Should single folders have the contents zipped to the root of the archive?'
 
-      activate: (state) ->
+    modalPanel: null
+    zipFolderView: null
+    subscriptions: null
+
+    activate: (state) ->
         @zipFolderView = new ZipFolderView(state.zipFolderViewState)
         @modalPanel = atom.workspace.addModalPanel(item: @zipFolderView.getElement(), visible: false)
 
@@ -23,19 +30,21 @@ module.exports =
         @subscriptions.add atom.commands.add 'atom-workspace', 'zip-folder:run': => @run()
         # @subscriptions.add atom.commands.add 'atom-workspace', 'zip-folder:toggle': => @toggle()
 
-      deactivate: ->
+    deactivate: ->
         @modalPanel.destroy()
         @subscriptions.dispose()
         @zipFolderView.destroy()
 
-      serialize: ->
+    serialize: ->
         zipFolderViewState: @zipFolderView.serialize()
 
-      run: ->
+    run: ->
         # require libraries that we rely on
-        fs = require('fs-plus')
+        fileSystem = require('fs-plus')
         JSZip = require("jszip")
         path = require('path')
+
+        isSingleFolderZip = false;
 
         # set up a new zip class
         zip = new JSZip()
@@ -47,6 +56,9 @@ module.exports =
 
         # get all the selected items in the list tree
         selected = listTree.querySelectorAll('.selected > .header > span, .selected > span')
+
+        if selected.length == 1 and fileSystem.isDirectorySync(selected[0].dataset.path)
+          isSingleFolderZip = true
 
         # if we are handling more then one item then the zip name will be the projects main folder name
         # else the folder/file name is the selected items name
@@ -73,14 +85,14 @@ module.exports =
             # set the selectedBasePath to empty
             selectedBasePath = ""
             # if we are handling a directory set the selectedBasePath to that
-            if fs.isDirectorySync selected[0].dataset.path
+            if fileSystem.isDirectorySync selected[0].dataset.path
                 selectedBasePath = selected[0].dataset.path
 
 
         # if the zip folder exists then truncate it
         # this prevents us just adding to the zip folder
-        if fs.existsSync(savePath)
-            fs.truncateSync(savePath, 0)
+        if fileSystem.existsSync(savePath)
+            fileSystem.truncateSync(savePath, 0)
 
         # cycle through the selected list tree items
         d = 0
@@ -90,13 +102,17 @@ module.exports =
             # setup a blank relative path to the file
             relPath = ""
             # setup an empty array of files
-            files = [];
+            files = []
+            baseZipPath = ""
+
+            if isSingleFolderZip and not atom.config.get 'zip-folder.singleFolderZipToRoot'
+              baseZipPath = selected[d].dataset.name + path.sep
 
             # if the selected item is a directory then
             # get an array of the items inside it and
             # add that array directly to the files array
-            if fs.isDirectorySync(selPath)
-                files = fs.listTreeSync(selPath)
+            if fileSystem.isDirectorySync(selPath)
+                files = fileSystem.listTreeSync(selPath)
             else
                 files = [selPath]
 
@@ -123,10 +139,10 @@ module.exports =
 
 
                 # if the absolute path is not a directory we add the file to the zip archive
-                if (fs.isDirectorySync(absPath))
-                    zip.folder(relPath)
+                if (fileSystem.isDirectorySync(absPath))
+                    zip.folder(baseZipPath + relPath)
                 else
-                    zip.file(relPath, fs.readFileSync(absPath))
+                    zip.file(baseZipPath + relPath, fileSystem.readFileSync(absPath))
 
                 fileCount++
 
@@ -161,7 +177,7 @@ module.exports =
         content = zip.generate(zipOptions)
 
         # write the contents to the zip file
-        fs.writeFile(savePath, content, (e) ->
+        fileSystem.writeFile(savePath, content, (e) ->
             if e != null
                 # let the user know there was an error saving the zip file
                 atom.notifications.addError(e.message)
