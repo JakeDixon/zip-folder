@@ -1,4 +1,4 @@
-## 3.5.0 - Added setting for zipping single folders better
+## 3.3.0 - Added setting for zipping single folders better
 * Added checkbox for single folders to be zipped instead of just their contents
 
 ## 3.2.0 - Added settings for compression
